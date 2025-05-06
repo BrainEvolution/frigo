@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "../lib/queryClient";
+import { apiRequest, queryClient, QueryKeys, invalidateQueriesGroup } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -40,20 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
   } = useQuery({
-    queryKey: ["/api/session"],
+    queryKey: [QueryKeys.SESSION],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/session");
+      const res = await apiRequest("GET", QueryKeys.SESSION);
       return await res.json();
     },
   });
 
   // Busca os dados do usuário se estiver autenticado
   const { data: userData } = useQuery({
-    queryKey: ["/api/usuarios/me"],
+    queryKey: [QueryKeys.USER_ME],
     queryFn: async () => {
       if (!sessionData?.autenticado) return null;
       try {
-        const res = await apiRequest("GET", "/api/usuarios/me");
+        const res = await apiRequest("GET", QueryKeys.USER_ME);
         if (!res.ok) throw new Error("Falha ao buscar dados do usuário");
         return await res.json();
       } catch (error) {
@@ -81,8 +81,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Login bem-sucedido. Tipo de usuário:", userType);
       
       // Atualiza o cache com os dados do usuário (importante fazer isso antes do redirecionamento)
-      queryClient.setQueryData(["/api/session"], { autenticado: true, userId: data.usuario.id, userType });
-      queryClient.setQueryData(["/api/usuarios/me"], data.usuario);
+      queryClient.setQueryData([QueryKeys.SESSION], { autenticado: true, userId: data.usuario.id, userType });
+      queryClient.setQueryData([QueryKeys.USER_ME], data.usuario);
+      
+      // Pré-carrega os dados necessários antes do redirecionamento para evitar carregamentos adicionais
+      if (userType === "cliente") {
+        try {
+          // Carrega os dados necessários para a página inicial em paralelo
+          await Promise.all([
+            queryClient.prefetchQuery({ queryKey: [QueryKeys.ANIMAIS_VIVOS] }),
+            queryClient.prefetchQuery({ queryKey: [QueryKeys.ANIMAIS_ABATIDOS] })
+          ]);
+        } catch (error) {
+          console.error("Erro ao pré-carregar dados:", error);
+        }
+      }
 
       // Mostra a notificação
       toast({
@@ -90,9 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Você está conectado ao sistema.",
       });
       
-      // Pequeno atraso antes do redirecionamento para garantir que o estado seja atualizado
+      // Redireciona baseado no tipo de usuário (com pequeno atraso para garantir que dados sejam carregados)
       setTimeout(() => {
-        // Redireciona baseado no tipo de usuário
         if (userType === "master") {
           console.log("Redirecionando para /admin");
           window.location.href = "/admin";
@@ -100,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log("Redirecionando para /estoque-vivo");
           window.location.href = "/estoque-vivo";
         }
-      }, 100);
+      }, 300);
     },
     onError: (error: Error) => {
       toast({
@@ -121,8 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       // Limpa os dados da sessão e do usuário no cache
-      queryClient.setQueryData(["/api/session"], { autenticado: false });
-      queryClient.setQueryData(["/api/usuarios/me"], null);
+      queryClient.setQueryData([QueryKeys.SESSION], { autenticado: false });
+      queryClient.setQueryData([QueryKeys.USER_ME], null);
+      
+      // Limpa todos os dados em cache
+      queryClient.clear();
       
       toast({
         title: "Logout realizado com sucesso",
@@ -132,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirecionar para a página de login com uma abordagem mais direta
       setTimeout(() => {
         window.location.href = "/auth";
-      }, 100);
+      }, 300);
     },
     onError: (error: Error) => {
       toast({
