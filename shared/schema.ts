@@ -201,13 +201,13 @@ export const desocaInsertSchema = createInsertSchema(desoca, {
 export const cortesInsertSchema = createInsertSchema(cortes, {
   nome: (schema) => schema.min(2, "Nome do corte deve ter pelo menos 2 caracteres"),
   tipo: (schema) => schema.min(2, "Tipo do corte deve ter pelo menos 2 caracteres"),
-  peso: (schema) => schema.refine(val => val > 0, "Peso deve ser um valor positivo"),
+  peso: (schema) => schema.refine(val => parseFloat(String(val)) > 0, "Peso deve ser um valor positivo"),
 }).omit({ id: true, dataCriacao: true });
 
 export const estoqueFinalInsertSchema = createInsertSchema(estoqueFinal, {
   codigo: (schema) => schema.min(3, "Código deve ter pelo menos 3 caracteres"),
-  quantidade: (schema) => schema.refine(val => val > 0, "Quantidade deve ser um valor positivo"),
-  preco: (schema) => schema.refine(val => val > 0, "Preço deve ser um valor positivo"),
+  quantidade: (schema) => schema.refine(val => parseFloat(String(val)) > 0, "Quantidade deve ser um valor positivo"),
+  preco: (schema) => schema.refine(val => parseFloat(String(val)) > 0, "Preço deve ser um valor positivo"),
 }).omit({ id: true, disponivel: true });
 
 // Types

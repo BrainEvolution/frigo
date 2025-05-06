@@ -49,7 +49,11 @@ export default function AdminPage() {
     },
   });
   
-  const clientesColumns = [
+  const clientesColumns: Array<{
+    header: string;
+    accessorKey: keyof Cliente;
+    cell?: (row: Cliente) => React.ReactNode;
+  }> = [
     {
       header: "Nome",
       accessorKey: "nome",
@@ -81,7 +85,11 @@ export default function AdminPage() {
     },
   ];
   
-  const usuariosColumns = [
+  const usuariosColumns: Array<{
+    header: string;
+    accessorKey: keyof Usuario;
+    cell?: (row: Usuario) => React.ReactNode;
+  }> = [
     {
       header: "Nome",
       accessorKey: "nome",
@@ -97,7 +105,7 @@ export default function AdminPage() {
     },
     {
       header: "Cliente",
-      accessorKey: "cliente",
+      accessorKey: "id", // Usando id como campo existente mas mostrando o cliente
       cell: (row: Usuario) => row.cliente?.nome || "-",
     },
     {

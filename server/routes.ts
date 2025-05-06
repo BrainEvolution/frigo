@@ -160,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const usuario = await db.query.usuarios.findFirst({
         where: eq(usuarios.id, userId!),
         with: {
-          cliente: req.session.userType === tipoUsuario.CLIENTE,
+          cliente: req.session.userType === tipoUsuario.CLIENTE ? true : undefined,
         },
       });
       
