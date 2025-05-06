@@ -481,18 +481,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Criar entrada no estoque final
-      const category = "embutidos";
-      const price = determinePriceByType(tipo);
+      const category = "Embutidos";
+      const price = storage.determinePriceByType(`embutido_${tipo}`);
       
       // Cada embutido vai direto para o estoque final
       await storage.insertEstoqueFinal({
-        nome: `${nome} (${tipo})`,
-        tipo: `embutido_${tipo}`,
-        categoria: category,
-        quantidade: 1, // Cada registro de embutido é uma unidade
-        peso: parseFloat(peso),
+        corteId: newCorte.id,
+        codigo: `EMB-${newCorte.id}`,
+        quantidade: parseFloat(peso),
         preco: price,
-        dataCriacao: new Date(),
+        validade: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 dias de validade para embutidos
+        temperatura: tipo === "frescal" ? 2 : -5, // Temperatura de armazenamento dependendo do tipo
+        categoria: category,
       });
       
       res.status(201).json({ 

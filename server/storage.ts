@@ -213,8 +213,9 @@ export const finalizarDesoca = async (id: number) => {
 };
 
 // Helper function to determine price by cut type
-function determinePriceByType(tipo: string): number {
+export function determinePriceByType(tipo: string): number {
   const prices: Record<string, number> = {
+    // Cortes tradicionais
     picanha: 79.9,
     contrafile: 49.9,
     alcatra: 45.9,
@@ -224,14 +225,20 @@ function determinePriceByType(tipo: string): number {
     acem: 29.9,
     patinho: 39.9,
     cupim: 42.9,
+    
+    // Embutidos
+    embutido_frescal: 32.9,
+    embutido_defumado: 45.9,
+    embutido_cozido: 39.9,
   };
   
   return prices[tipo] || 29.9; // Default price
 }
 
 // Helper function to determine category
-function determineCategory(tipo: string): string {
+export function determineCategory(tipo: string): string {
   const categories: Record<string, string> = {
+    // Cortes tradicionais
     picanha: "Premium",
     contrafile: "Extra",
     filemignon: "Premium",
@@ -241,6 +248,11 @@ function determineCategory(tipo: string): string {
     acem: "Padrão",
     patinho: "Padrão",
     cupim: "Extra",
+    
+    // Embutidos
+    embutido_frescal: "Embutidos",
+    embutido_defumado: "Embutidos",
+    embutido_cozido: "Embutidos",
   };
   
   return categories[tipo] || "Padrão"; // Default category
@@ -270,6 +282,28 @@ export const getEstoqueFinalById = async (id: number) => {
   return await db.query.estoqueFinal.findFirst({
     where: eq(estoqueFinal.id, id),
   });
+};
+
+// Insert into estoque final
+export const insertEstoqueFinal = async (data: EstoqueFinalInsert) => {
+  // Generate a unique code if not provided
+  if (!data.codigo) {
+    const prefix = data.categoria.substring(0, 3).toUpperCase();
+    const timestamp = Date.now() % 10000; // Last 4 digits of timestamp
+    data.codigo = `${prefix}-${timestamp}`;
+  }
+  
+  // Set default validade if not provided (30 days from now)
+  if (!data.validade) {
+    data.validade = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
+  
+  const [newItem] = await db
+    .insert(estoqueFinal)
+    .values(data)
+    .returning();
+  
+  return newItem;
 };
 
 export const registrarSaida = async (id: number, quantidade: number) => {
