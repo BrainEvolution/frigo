@@ -3,7 +3,7 @@ export const NAV_ITEMS = [
   { 
     name: "Estoque Vivo", 
     path: "/estoque-vivo", 
-    icon: "pets"
+    icon: "agriculture"
   },
   { 
     name: "Abatedouro", 
