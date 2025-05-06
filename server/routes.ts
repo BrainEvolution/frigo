@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         corteId: newCorte.id,
         codigo: `EMB-${newCorte.id}`,
         quantidade: parseFloat(peso),
-        preco: price,
+        preco: price, // O conversor está dentro do insertEstoqueFinal
         validade: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 dias de validade para embutidos
         temperatura: tipo === "frescal" ? 2 : -5, // Temperatura de armazenamento dependendo do tipo
         categoria: category,

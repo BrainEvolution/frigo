@@ -198,7 +198,7 @@ export const finalizarDesoca = async (id: number) => {
   for (const corte of desocaCortes) {
     const tipoFormatado = corte.tipo.charAt(0).toUpperCase() + corte.tipo.slice(1);
     
-    await db.insert(estoqueFinal).values({
+    await insertEstoqueFinal({
       corteId: corte.id,
       codigo: generateCode(tipoFormatado.substring(0, 3).toUpperCase(), corte.id),
       quantidade: corte.peso,
@@ -285,7 +285,17 @@ export const getEstoqueFinalById = async (id: number) => {
 };
 
 // Insert into estoque final
-export const insertEstoqueFinal = async (data: EstoqueFinalInsert) => {
+export const insertEstoqueFinal = async (
+  data: {
+    corteId: number;
+    codigo?: string;
+    quantidade: number;
+    preco: string | number;
+    validade?: Date;
+    temperatura: number;
+    categoria: string;
+  }
+) => {
   // Generate a unique code if not provided
   if (!data.codigo) {
     const prefix = data.categoria.substring(0, 3).toUpperCase();
@@ -298,9 +308,20 @@ export const insertEstoqueFinal = async (data: EstoqueFinalInsert) => {
     data.validade = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   }
   
+  // Convert price to string if it's a number
+  const precoAsString = typeof data.preco === 'number' ? data.preco.toString() : data.preco;
+  
   const [newItem] = await db
     .insert(estoqueFinal)
-    .values(data)
+    .values({
+      corteId: data.corteId,
+      codigo: data.codigo,
+      quantidade: data.quantidade,
+      preco: precoAsString,
+      validade: data.validade,
+      temperatura: data.temperatura,
+      categoria: data.categoria,
+    })
     .returning();
   
   return newItem;
