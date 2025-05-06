@@ -1,15 +1,207 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import * as storage from "./storage";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { db } from "../db";
+import { clientes, tipoUsuario, usuarios, usuariosInsertSchema, clientesInsertSchema } from "../shared/schema";
+import { eq, and } from "drizzle-orm";
+import { autenticarUsuario, comparePassword, criarUsuarioMaster, hashPassword, isAdmin } from "./auth";
+import { pool } from "../db";
+
+// Tipo de usuário autenticado para a sessão
+declare module "express-session" {
+  interface SessionData {
+    userId: number;
+    userType: string;
+    clienteId?: number;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session
+  const PgSession = connectPgSimple(session);
+  app.use(
+    session({
+      store: new PgSession({
+        pool,
+        tableName: 'session', // Nome da tabela de sessões
+        createTableIfMissing: true
+      }),
+      secret: process.env.SESSION_SECRET || 'frigorificos-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
+        secure: process.env.NODE_ENV === 'production'
+      }
+    })
+  );
+
+  // Middleware para verificar autenticação
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Não autorizado. Faça login para continuar." });
+    }
+    next();
+  };
+
+  // Middleware para verificar se é admin
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId || req.session.userType !== tipoUsuario.MASTER) {
+      return res.status(403).json({ message: "Acesso negado. Permissão de administrador necessária." });
+    }
+    next();
+  };
+
+  // Criar usuário master inicial, se não existir
+  await criarUsuarioMaster();
+
   // API routes prefix
   const apiPrefix = "/api";
+  
+  // === AUTH ROUTES ===
+  
+  // Login
+  app.post(`${apiPrefix}/login`, async (req, res) => {
+    try {
+      const { email, senha } = req.body;
+      
+      if (!email || !senha) {
+        return res.status(400).json({ message: "Email e senha são obrigatórios" });
+      }
+      
+      const usuario = await autenticarUsuario(email, senha);
+      
+      if (!usuario) {
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+      
+      // Iniciar sessão
+      req.session.userId = usuario.id;
+      req.session.userType = usuario.tipo;
+      if (usuario.clienteId) {
+        req.session.clienteId = usuario.clienteId;
+      }
+      
+      // Não retornar a senha
+      const { senha: _, ...usuarioSemSenha } = usuario;
+      
+      res.json({
+        message: "Login realizado com sucesso",
+        usuario: usuarioSemSenha
+      });
+    } catch (error) {
+      console.error("Error during login:", error);
+      res.status(500).json({ message: "Erro ao fazer login" });
+    }
+  });
+  
+  // Logout
+  app.post(`${apiPrefix}/logout`, (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error during logout:", err);
+        return res.status(500).json({ message: "Erro ao fazer logout" });
+      }
+      res.json({ message: "Logout realizado com sucesso" });
+    });
+  });
+  
+  // Check session
+  app.get(`${apiPrefix}/session`, (req, res) => {
+    if (req.session.userId) {
+      return res.json({
+        autenticado: true,
+        userId: req.session.userId,
+        userType: req.session.userType,
+        clienteId: req.session.clienteId
+      });
+    }
+    
+    res.json({ autenticado: false });
+  });
+  
+  // === CLIENTES ROUTES (ADMIN ONLY) ===
+  
+  // List all clientes
+  app.get(`${apiPrefix}/clientes`, requireAdmin, async (req, res) => {
+    try {
+      const clientesList = await db.query.clientes.findMany({
+        where: eq(clientes.ativo, true)
+      });
+      res.json(clientesList);
+    } catch (error) {
+      console.error("Error fetching clientes:", error);
+      res.status(500).json({ message: "Erro ao buscar clientes" });
+    }
+  });
+  
+  // Create cliente
+  app.post(`${apiPrefix}/clientes`, requireAdmin, async (req, res) => {
+    try {
+      const validatedData = clientesInsertSchema.parse(req.body);
+      
+      const newCliente = await db.insert(clientes).values(validatedData).returning();
+      
+      res.status(201).json(newCliente[0]);
+    } catch (error) {
+      console.error("Error creating cliente:", error);
+      res.status(500).json({ message: "Erro ao criar cliente" });
+    }
+  });
+  
+  // === USUARIOS ROUTES (ADMIN ONLY) ===
+  
+  // List all usuarios
+  app.get(`${apiPrefix}/usuarios`, requireAdmin, async (req, res) => {
+    try {
+      const usuariosList = await db.query.usuarios.findMany({
+        where: eq(usuarios.ativo, true),
+        with: {
+          cliente: true
+        }
+      });
+      
+      const usuariosSemSenha = usuariosList.map(usuario => {
+        const { senha, ...usuarioSemSenha } = usuario;
+        return usuarioSemSenha;
+      });
+      
+      res.json(usuariosSemSenha);
+    } catch (error) {
+      console.error("Error fetching usuarios:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários" });
+    }
+  });
+  
+  // Create usuario
+  app.post(`${apiPrefix}/usuarios`, requireAdmin, async (req, res) => {
+    try {
+      const { senha, ...rest } = usuariosInsertSchema.parse(req.body);
+      
+      // Hash da senha
+      const senhaCriptografada = await hashPassword(senha);
+      
+      const newUsuario = await db.insert(usuarios).values({
+        ...rest,
+        senha: senhaCriptografada
+      }).returning();
+      
+      // Não retornar a senha
+      const { senha: _, ...usuarioSemSenha } = newUsuario[0];
+      
+      res.status(201).json(usuarioSemSenha);
+    } catch (error) {
+      console.error("Error creating usuario:", error);
+      res.status(500).json({ message: "Erro ao criar usuário" });
+    }
+  });
   
   // === ANIMAL VIVO ROUTES ===
   
   // Get all animais vivos
-  app.get(`${apiPrefix}/animais-vivos`, async (req, res) => {
+  app.get(`${apiPrefix}/animais-vivos`, requireAuth, async (req, res) => {
     try {
       const animais = await storage.getAnimaisVivos();
       res.json(animais);
