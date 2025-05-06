@@ -75,32 +75,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return await res.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/session"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/usuarios/me"] });
-      
-      // Força busca imediata dos dados do usuário
-      queryClient.refetchQueries({ queryKey: ["/api/session"] });
-      queryClient.refetchQueries({ queryKey: ["/api/usuarios/me"] });
-      
+    onSuccess: async (data) => {
       // Armazena o tipo de usuário explicitamente
       const userType = data.usuario.tipo;
       console.log("Login bem-sucedido. Tipo de usuário:", userType);
       
-      // Redireciona baseado no tipo de usuário
-      if (userType === "master") {
-        console.log("Redirecionando para /admin");
-        setLocation("/admin");
-      } else {
-        console.log("Redirecionando para /estoque-vivo");
-        // Redirecione explicitamente para a página inicial do sistema
-        setLocation("/estoque-vivo");
-      }
-      
+      // Atualiza o cache com os dados do usuário (importante fazer isso antes do redirecionamento)
+      queryClient.setQueryData(["/api/session"], { autenticado: true, userId: data.usuario.id, userType });
+      queryClient.setQueryData(["/api/usuarios/me"], data.usuario);
+
+      // Mostra a notificação
       toast({
         title: "Login realizado com sucesso",
         description: "Você está conectado ao sistema.",
       });
+      
+      // Pequeno atraso antes do redirecionamento para garantir que o estado seja atualizado
+      setTimeout(() => {
+        // Redireciona baseado no tipo de usuário
+        if (userType === "master") {
+          console.log("Redirecionando para /admin");
+          window.location.href = "/admin";
+        } else {
+          console.log("Redirecionando para /estoque-vivo");
+          window.location.href = "/estoque-vivo";
+        }
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
@@ -120,16 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      // Limpa os dados da sessão e do usuário no cache
       queryClient.setQueryData(["/api/session"], { autenticado: false });
-      
-      // Redirecionar para a página de login
-      setLocation("/auth");
+      queryClient.setQueryData(["/api/usuarios/me"], null);
       
       toast({
         title: "Logout realizado com sucesso",
         description: "Você saiu do sistema.",
       });
+      
+      // Redirecionar para a página de login com uma abordagem mais direta
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
