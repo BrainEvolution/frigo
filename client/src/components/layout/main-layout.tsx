@@ -3,6 +3,7 @@ import BottomNav from "./bottom-nav";
 import Header from "./header";
 import { useLocation } from "wouter";
 import { NAV_ITEMS } from "@/lib/constants";
+import { useAuth } from "@/hooks/use-auth";
 
 type MainLayoutProps = {
   children: ReactNode;

@@ -7,23 +7,45 @@ import AbaterAnimal from "@/pages/abatedouro/abater-animal";
 import EstoqueFrio from "@/pages/estoque-frio";
 import Desoca from "@/pages/desoca";
 import EstoqueFinal from "@/pages/estoque-final";
+import AuthPage from "@/pages/auth-page";
+import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
+import { Toaster } from "@/components/ui/toaster";
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      
+      {/* Rotas protegidas - Sistema */}
+      <ProtectedRoute path="/" component={EstoqueVivo} />
+      <ProtectedRoute path="/estoque-vivo" component={EstoqueVivo} />
+      <ProtectedRoute path="/estoque-vivo/adicionar" component={AdicionarAnimal} />
+      <ProtectedRoute path="/abatedouro" component={Abatedouro} />
+      <ProtectedRoute path="/abatedouro/abater" component={AbaterAnimal} />
+      <ProtectedRoute path="/estoque-frio" component={EstoqueFrio} />
+      <ProtectedRoute path="/desoca" component={Desoca} />
+      <ProtectedRoute path="/estoque-final" component={EstoqueFinal} />
+      
+      {/* Rotas protegidas - Administração (apenas para master) */}
+      <ProtectedRoute path="/admin" component={AdminPage} adminOnly={true} />
+      
+      {/* Rota 404 */}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function App() {
   return (
-    <MainLayout>
-      <Switch>
-        <Route path="/" component={EstoqueVivo} />
-        <Route path="/estoque-vivo" component={EstoqueVivo} />
-        <Route path="/estoque-vivo/adicionar" component={AdicionarAnimal} />
-        <Route path="/abatedouro" component={Abatedouro} />
-        <Route path="/abatedouro/abater" component={AbaterAnimal} />
-        <Route path="/estoque-frio" component={EstoqueFrio} />
-        <Route path="/desoca" component={Desoca} />
-        <Route path="/estoque-final" component={EstoqueFinal} />
-        <Route component={NotFound} />
-      </Switch>
-    </MainLayout>
+    <AuthProvider>
+      <MainLayout>
+        <Router />
+      </MainLayout>
+      <Toaster />
+    </AuthProvider>
   );
 }
 

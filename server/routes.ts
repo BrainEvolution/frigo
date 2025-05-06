@@ -153,6 +153,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // === USUARIOS ROUTES (ADMIN ONLY) ===
   
+  // Get current user info
+  app.get(`${apiPrefix}/usuarios/me`, requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const usuario = await db.query.usuarios.findFirst({
+        where: eq(usuarios.id, userId!),
+        with: {
+          cliente: req.session.userType === tipoUsuario.CLIENTE,
+        },
+      });
+      
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      // Não retornar a senha
+      const { senha, ...usuarioSemSenha } = usuario;
+      
+      res.json(usuarioSemSenha);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Erro ao buscar usuário" });
+    }
+  });
+  
   // List all usuarios
   app.get(`${apiPrefix}/usuarios`, requireAdmin, async (req, res) => {
     try {
