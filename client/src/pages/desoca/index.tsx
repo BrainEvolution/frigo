@@ -11,7 +11,7 @@ import { useState } from "react";
 import { formatDate, formatWeight } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { TIPOS_CORTE } from "@/lib/constants";
+import { TIPOS_CORTE, TIPOS_EMBUTIDO } from "@/lib/constants";
 import { Desoca, Corte } from "@shared/schema";
 
 type DesocaWithCortes = Desoca & {
@@ -26,11 +26,19 @@ type NovoCorte = {
   peso: number;
 };
 
+type NovoEmbutido = {
+  nome: string;
+  tipo: string; // frescal, defumado, cozido
+  peso: number;
+};
+
 export default function DesocaPage() {
   const { toast } = useToast();
   const [isAddCorteOpen, setIsAddCorteOpen] = useState(false);
+  const [isAddEmbutidoOpen, setIsAddEmbutidoOpen] = useState(false);
   const [currentDesocaId, setCurrentDesocaId] = useState<number | null>(null);
   const [novoCorte, setNovoCorte] = useState<NovoCorte>({ nome: "", tipo: "", peso: 0 });
+  const [novoEmbutido, setNovoEmbutido] = useState<NovoEmbutido>({ nome: "", tipo: "", peso: 0 });
   
   const { data: desocaItems, isLoading } = useQuery<DesocaWithCortes[]>({
     queryKey: ['/api/desoca'],
@@ -100,6 +108,32 @@ export default function DesocaPage() {
     },
   });
   
+  // Mutation for adding embutido
+  const adicionarEmbutidoMutation = useMutation({
+    mutationFn: async (params: { desocaId: number; embutido: NovoEmbutido }) => {
+      const res = await apiRequest("POST", `/api/desoca/${params.desocaId}/embutidos`, params.embutido);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Embutido Adicionado",
+        description: "O embutido foi adicionado com sucesso.",
+      });
+      setIsAddEmbutidoOpen(false);
+      setNovoEmbutido({ nome: "", tipo: "", peso: 0 });
+      queryClient.invalidateQueries({ queryKey: ['/api/desoca'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/estoque-final'] });
+    },
+    onError: (error) => {
+      console.error("Error adding embutido:", error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao adicionar o embutido. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
   const handleFinalizar = (id: number) => {
     finalizarMutation.mutate(id);
   };
@@ -112,6 +146,12 @@ export default function DesocaPage() {
     setCurrentDesocaId(id);
     setNovoCorte({ nome: "", tipo: "", peso: 0 });
     setIsAddCorteOpen(true);
+  };
+  
+  const openAddEmbutidoDialog = (id: number) => {
+    setCurrentDesocaId(id);
+    setNovoEmbutido({ nome: "", tipo: "", peso: 0 });
+    setIsAddEmbutidoOpen(true);
   };
   
   const handleAddCorte = () => {
@@ -129,6 +169,24 @@ export default function DesocaPage() {
     adicionarCorteMutation.mutate({
       desocaId: currentDesocaId,
       corte: novoCorte,
+    });
+  };
+  
+  const handleAddEmbutido = () => {
+    if (!currentDesocaId) return;
+    
+    if (!novoEmbutido.nome || !novoEmbutido.tipo || novoEmbutido.peso <= 0) {
+      toast({
+        title: "Dados inválidos",
+        description: "Preencha todos os campos corretamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    adicionarEmbutidoMutation.mutate({
+      desocaId: currentDesocaId,
+      embutido: novoEmbutido,
     });
   };
 
@@ -201,13 +259,24 @@ export default function DesocaPage() {
                       >
                         <span className="material-icons text-sm mr-1">check_circle</span> Finalizar Processamento
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => openAddCorteDialog(item.id)}
-                      >
-                        <span className="material-icons text-sm mr-1">add</span> Adicionar Corte
-                      </Button>
+                      
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => openAddCorteDialog(item.id)}
+                        >
+                          <span className="material-icons text-sm mr-1">content_cut</span> Adicionar Corte
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => openAddEmbutidoDialog(item.id)}
+                        >
+                          <span className="material-icons text-sm mr-1">lunch_dining</span> Gerar Embutido
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <Button
@@ -294,6 +363,71 @@ export default function DesocaPage() {
               disabled={adicionarCorteMutation.isPending}
             >
               {adicionarCorteMutation.isPending ? "Adicionando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Embutido Dialog */}
+      <Dialog open={isAddEmbutidoOpen} onOpenChange={setIsAddEmbutidoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerar Embutido</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="nome-embutido">Nome do Embutido</Label>
+              <Input
+                id="nome-embutido"
+                placeholder="Ex: Linguiça, Salsicha, etc."
+                value={novoEmbutido.nome}
+                onChange={(e) => setNovoEmbutido({...novoEmbutido, nome: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="tipo-embutido">Tipo de Embutido</Label>
+              <select
+                id="tipo-embutido"
+                className="w-full p-2 border border-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                value={novoEmbutido.tipo}
+                onChange={(e) => setNovoEmbutido({...novoEmbutido, tipo: e.target.value})}
+              >
+                <option value="">Selecione o tipo</option>
+                {TIPOS_EMBUTIDO.map((tipo) => (
+                  <option key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="peso-embutido">Peso (kg)</Label>
+              <Input
+                id="peso-embutido"
+                type="number"
+                placeholder="Digite o peso em kg"
+                value={novoEmbutido.peso || ""}
+                onChange={(e) => setNovoEmbutido({...novoEmbutido, peso: parseFloat(e.target.value) || 0})}
+                step="0.01"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddEmbutidoOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddEmbutido}
+              disabled={adicionarEmbutidoMutation.isPending}
+            >
+              {adicionarEmbutidoMutation.isPending ? "Gerando..." : "Gerar Embutido"}
             </Button>
           </DialogFooter>
         </DialogContent>

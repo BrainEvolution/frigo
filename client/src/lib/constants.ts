@@ -53,6 +53,13 @@ export const TIPOS_CORTE = [
   { label: "Filé Mignon", value: "filemignon" },
 ];
 
+// Tipos de embutidos
+export const TIPOS_EMBUTIDO = [
+  { label: "Frescal", value: "frescal" },
+  { label: "Defumado", value: "defumado" },
+  { label: "Cozido", value: "cozido" },
+];
+
 // Meat categories
 export const CATEGORIAS = [
   { label: "Premium", value: "premium" },

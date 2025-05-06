@@ -462,6 +462,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add embutido to desoca
+  app.post(`${apiPrefix}/desoca/:id/embutidos`, async (req, res) => {
+    try {
+      const desocaId = parseInt(req.params.id);
+      const { nome, tipo, peso } = req.body;
+      
+      if (!nome || !tipo || !peso) {
+        return res.status(400).json({ message: "Nome, tipo e peso são obrigatórios" });
+      }
+      
+      // Criamos um embutido como um corte especial e depois o movemos diretamente para o estoque final
+      const newCorte = await storage.insertCorte({
+        desocaId,
+        nome: `Embutido: ${nome}`,
+        tipo: `embutido_${tipo}`, // prefixo para identificar como embutido
+        peso: parseFloat(peso),
+      });
+      
+      // Criar entrada no estoque final
+      const category = "embutidos";
+      const price = determinePriceByType(tipo);
+      
+      // Cada embutido vai direto para o estoque final
+      await storage.insertEstoqueFinal({
+        nome: `${nome} (${tipo})`,
+        tipo: `embutido_${tipo}`,
+        categoria: category,
+        quantidade: 1, // Cada registro de embutido é uma unidade
+        peso: parseFloat(peso),
+        preco: price,
+        dataCriacao: new Date(),
+      });
+      
+      res.status(201).json({ 
+        message: "Embutido processado com sucesso",
+        corte: newCorte
+      });
+    } catch (error) {
+      console.error("Error adding embutido:", error);
+      res.status(500).json({ message: "Erro ao adicionar embutido" });
+    }
+  });
+  
   // Finalize desoca
   app.post(`${apiPrefix}/desoca/:id/finalizar`, async (req, res) => {
     try {
