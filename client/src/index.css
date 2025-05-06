@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 0 68% 50%;
+    --primary-foreground: 210 40% 98%;
+    --primary-light: 0 71% 91%;
+    --primary-dark: 0 73% 41%;
+
+    --secondary: 217 71% 53%;
+    --secondary-foreground: 210 40% 98%;
+    --secondary-light: 207 89% 86%;
+    --secondary-dark: 217 91% 60%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --neutral-light: 0 0% 96%;
+    --neutral-medium: 0 0% 62%;
+    --neutral-dark: 200 18% 18%;
+
+    --success: 120 39% 49%;
+    --warning: 36 100% 50%;
+    --error: 0 84% 60%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 68% 50%;
+
+    --radius: 0.5rem;
+
+    /* Charts */
+    --chart-1: 217 71% 53%;
+    --chart-2: 0 68% 50%;
+    --chart-3: 120 39% 49%;
+    --chart-4: 36 100% 50%;
+    --chart-5: 0 84% 60%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 0 63% 50%;
+    --primary-foreground: 210 40% 98%;
+    --primary-light: 0 71% 91%;
+    --primary-dark: 0 73% 41%;
+
+    --secondary: 217 71% 53%;
+    --secondary-foreground: 210 40% 98%;
+    --secondary-light: 217 91% 60%;
+    --secondary-dark: 221 83% 53%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --neutral-light: 0 0% 20%;
+    --neutral-medium: 0 0% 62%;
+    --neutral-dark: 200 18% 88%;
+
+    --success: 120 39% 45%;
+    --warning: 36 100% 45%;
+    --error: 0 84% 55%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 0 63% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-neutral-light text-neutral-dark;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Font import for Material Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
