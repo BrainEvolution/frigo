@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatWeight } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, QueryKeys, invalidateQueriesGroup } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AnimalVivo } from "@shared/schema";
 
@@ -22,9 +21,12 @@ export default function AbaterAnimal() {
   const [pesoAbatido, setPesoAbatido] = useState<number>(0);
   const [observacoes, setObservacoes] = useState<string>("");
   
-  // Fetch available animals
+  // Fetch available animals with regular refresh
   const { data: animaisDisponiveis, isLoading } = useQuery<AnimalVivo[]>({
-    queryKey: ['/api/animais-vivos/disponiveis'],
+    queryKey: [QueryKeys.ANIMAIS_VIVOS_DISPONIVEIS],
+    refetchInterval: 5000, // Revalidar a cada 5 segundos
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
   
   // Toggle selected animal
@@ -56,7 +58,7 @@ export default function AbaterAnimal() {
   // Submit slaughter weight
   const abateMutation = useMutation({
     mutationFn: async (params: { animalVivoId: number; pesoAbatido: number; observacoes?: string }) => {
-      const res = await apiRequest("POST", "/api/animais-abatidos", params);
+      const res = await apiRequest("POST", QueryKeys.ANIMAIS_ABATIDOS, params);
       return res.json();
     },
     onSuccess: () => {
@@ -73,13 +75,16 @@ export default function AbaterAnimal() {
       // Close dialog
       closeWeightDialog();
       
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['/api/animais-vivos/disponiveis'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/animais-abatidos'] });
+      // Invalidar todos os dados relacionados a animais e estoque
+      invalidateQueriesGroup("animais");
+      invalidateQueriesGroup("estoque");
       
-      // If no more selected animals, navigate to abatedouro
+      // Se não houver mais animais selecionados, navegue para a tela principal
+      // Com um pequeno atraso para garantir que os dados foram recarregados
       if (selectedAnimals.length <= 1) {
-        navigate("/abatedouro");
+        setTimeout(() => {
+          navigate("/abatedouro");
+        }, 300);
       }
     },
     onError: (error) => {

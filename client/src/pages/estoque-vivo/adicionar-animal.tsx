@@ -8,8 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, QueryKeys, invalidateQueriesGroup } from "@/lib/queryClient";
 import { ESPECIES, SEXOS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { animaisVivosInsertSchema } from "@shared/schema";
@@ -36,16 +35,22 @@ export default function AdicionarAnimal() {
   
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof animalFormSchema>) => {
-      const res = await apiRequest("POST", "/api/animais-vivos", values);
+      const res = await apiRequest("POST", QueryKeys.ANIMAIS_VIVOS, values);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Animal adicionado",
         description: "O animal foi adicionado com sucesso ao estoque vivo.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/animais-vivos'] });
-      navigate("/estoque-vivo");
+      
+      // Usando o novo sistema de invalidação
+      invalidateQueriesGroup("animais");
+      
+      // Redireciona após um pequeno atraso para garantir que o cache foi atualizado
+      setTimeout(() => {
+        navigate("/estoque-vivo");
+      }, 300);
     },
     onError: (error) => {
       console.error("Error adding animal:", error);
