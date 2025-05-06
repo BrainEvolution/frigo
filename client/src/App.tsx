@@ -9,6 +9,8 @@ import Desoca from "@/pages/desoca";
 import EstoqueFinal from "@/pages/estoque-final";
 import AuthPage from "@/pages/auth-page";
 import AdminPage from "@/pages/admin";
+import NovoCliente from "@/pages/admin/clientes/novo";
+import NovoUsuario from "@/pages/admin/usuarios/novo";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -31,6 +33,8 @@ function Router() {
       
       {/* Rotas protegidas - Administração (apenas para master) */}
       <ProtectedRoute path="/admin" component={AdminPage} adminOnly={true} />
+      <ProtectedRoute path="/admin/clientes/novo" component={NovoCliente} adminOnly={true} />
+      <ProtectedRoute path="/admin/usuarios/novo" component={NovoUsuario} adminOnly={true} />
       
       {/* Rota 404 */}
       <Route component={NotFound} />
