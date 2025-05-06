@@ -87,6 +87,9 @@ export default function NovoUsuario() {
       // Invalidar a cache para atualizar a lista de usuários
       queryClient.invalidateQueries({ queryKey: ["/api/usuarios"] });
       
+      // Forçar nova busca
+      queryClient.refetchQueries({ queryKey: ["/api/usuarios"] });
+      
       toast({
         title: "Usuário criado com sucesso",
         description: `Usuário ${novoUsuario.nome} foi adicionado.`,

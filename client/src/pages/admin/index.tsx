@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,24 +31,34 @@ export default function AdminPage() {
   const { user } = useAuth();
   
   // Buscar clientes
-  const { data: clientes = [], isLoading: isLoadingClientes } = useQuery({
+  const { data: clientes = [], isLoading: isLoadingClientes, refetch: refetchClientes } = useQuery({
     queryKey: ["/api/clientes"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/clientes");
       if (!res.ok) throw new Error("Falha ao buscar clientes");
       return await res.json() as Cliente[];
     },
+    staleTime: 0, // Sempre considerar os dados obsoletos
+    refetchOnMount: true, // Sempre fazer novo fetch quando o componente montar
   });
   
   // Buscar usuários
-  const { data: usuarios = [], isLoading: isLoadingUsuarios } = useQuery({
+  const { data: usuarios = [], isLoading: isLoadingUsuarios, refetch: refetchUsuarios } = useQuery({
     queryKey: ["/api/usuarios"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/usuarios");
       if (!res.ok) throw new Error("Falha ao buscar usuários");
       return await res.json() as Usuario[];
     },
+    staleTime: 0, // Sempre considerar os dados obsoletos
+    refetchOnMount: true, // Sempre fazer novo fetch quando o componente montar
   });
+  
+  // Efeito para recarregar os dados quando a página é montada
+  useEffect(() => {
+    refetchClientes();
+    refetchUsuarios();
+  }, [refetchClientes, refetchUsuarios]);
   
   const clientesColumns: Array<{
     header: string;

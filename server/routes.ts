@@ -201,8 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // List all usuarios
   app.get(`${apiPrefix}/usuarios`, requireAdmin, async (req, res) => {
     try {
+      // Listar todos os usuários sem filtro de "ativo"
       const usuariosList = await db.query.usuarios.findMany({
-        where: eq(usuarios.ativo, true),
         with: {
           cliente: true
         }

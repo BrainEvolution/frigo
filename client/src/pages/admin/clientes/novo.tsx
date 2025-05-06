@@ -61,6 +61,9 @@ export default function NovoCliente() {
       // Invalidar a cache para atualizar a lista de clientes
       queryClient.invalidateQueries({ queryKey: ["/api/clientes"] });
       
+      // Forçar nova busca
+      queryClient.refetchQueries({ queryKey: ["/api/clientes"] });
+      
       toast({
         title: "Cliente criado com sucesso",
         description: `Cliente ${novoCliente.nome} foi adicionado.`,
