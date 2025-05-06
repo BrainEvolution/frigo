@@ -3,6 +3,34 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Clientes e usuários
+export const clientes = pgTable("clientes", {
+  id: serial("id").primaryKey(),
+  nome: text("nome").notNull(),
+  cnpj: text("cnpj").notNull().unique(),
+  telefone: text("telefone"),
+  email: text("email"),
+  endereco: text("endereco"),
+  ativo: boolean("ativo").default(true).notNull(),
+  dataCadastro: timestamp("data_cadastro").defaultNow().notNull()
+});
+
+export const tipoUsuario = {
+  MASTER: "master",
+  CLIENTE: "cliente"
+} as const;
+
+export const usuarios = pgTable("usuarios", {
+  id: serial("id").primaryKey(),
+  clienteId: integer("cliente_id").references(() => clientes.id),
+  nome: text("nome").notNull(),
+  email: text("email").notNull().unique(),
+  senha: text("senha").notNull(),
+  tipo: text("tipo").notNull(),
+  ativo: boolean("ativo").default(true).notNull(),
+  dataCadastro: timestamp("data_cadastro").defaultNow().notNull()
+});
+
 // Animal vivo (Live animal)
 export const animaisVivos = pgTable("animais_vivos", {
   id: serial("id").primaryKey(),
@@ -73,6 +101,17 @@ export const estoqueFinal = pgTable("estoque_final", {
 });
 
 // Relaçoes (Relations)
+export const clientesRelations = relations(clientes, ({ many }) => ({
+  usuarios: many(usuarios)
+}));
+
+export const usuariosRelations = relations(usuarios, ({ one }) => ({
+  cliente: one(clientes, {
+    fields: [usuarios.clienteId],
+    references: [clientes.id],
+  }),
+}));
+
 export const animaisVivosRelations = relations(animaisVivos, ({ one }) => ({
   animalAbatido: one(animaisAbatidos, {
     fields: [animaisVivos.id],
@@ -126,6 +165,17 @@ export const estoqueFinalRelations = relations(estoqueFinal, ({ one }) => ({
 }));
 
 // Insertion schemas
+export const clientesInsertSchema = createInsertSchema(clientes, {
+  nome: (schema) => schema.min(3, "Nome deve ter pelo menos 3 caracteres"),
+  cnpj: (schema) => schema.min(14, "CNPJ deve ter pelo menos 14 caracteres"),
+}).omit({ id: true, dataCadastro: true, ativo: true });
+
+export const usuariosInsertSchema = createInsertSchema(usuarios, {
+  nome: (schema) => schema.min(3, "Nome deve ter pelo menos 3 caracteres"),
+  email: (schema) => schema.email("Email deve ser válido"),
+  senha: (schema) => schema.min(6, "Senha deve ter pelo menos 6 caracteres"),
+}).omit({ id: true, dataCadastro: true, ativo: true });
+
 export const animaisVivosInsertSchema = createInsertSchema(animaisVivos, {
   gta: (schema) => schema.min(5, "GTA deve ter pelo menos 5 caracteres"),
   brinco: (schema) => schema.min(3, "Brinco deve ter pelo menos 3 caracteres"),
@@ -161,6 +211,12 @@ export const estoqueFinalInsertSchema = createInsertSchema(estoqueFinal, {
 }).omit({ id: true, disponivel: true });
 
 // Types
+export type Cliente = typeof clientes.$inferSelect;
+export type ClienteInsert = z.infer<typeof clientesInsertSchema>;
+
+export type Usuario = typeof usuarios.$inferSelect;
+export type UsuarioInsert = z.infer<typeof usuariosInsertSchema>;
+
 export type AnimalVivo = typeof animaisVivos.$inferSelect;
 export type AnimalVivoInsert = z.infer<typeof animaisVivosInsertSchema>;
 
