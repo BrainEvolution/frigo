@@ -72,9 +72,26 @@ export default function NovoCliente() {
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
       
+      // Tentar extrair mensagem de erro mais detalhada da API
+      let errorMessage = "Ocorreu um erro inesperado";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Verificar se é um erro da API com detalhes
+      if (error instanceof Response) {
+        try {
+          const errorData = await error.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          // Se não conseguir extrair JSON, use a mensagem padrão
+        }
+      }
+      
       toast({
         title: "Erro ao criar cliente",
-        description: error instanceof Error ? error.message : "Ocorreu um erro inesperado",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

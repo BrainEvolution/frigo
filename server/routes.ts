@@ -127,9 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // List all clientes
   app.get(`${apiPrefix}/clientes`, requireAdmin, async (req, res) => {
     try {
-      const clientesList = await db.query.clientes.findMany({
-        where: eq(clientes.ativo, true)
-      });
+      // Listar todos os clientes sem filtro de "ativo"
+      const clientesList = await db.query.clientes.findMany();
       res.json(clientesList);
     } catch (error) {
       console.error("Error fetching clientes:", error);
@@ -142,11 +141,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = clientesInsertSchema.parse(req.body);
       
+      // Verificar se já existe um cliente com o mesmo CNPJ
+      const existingCliente = await db.query.clientes.findFirst({
+        where: eq(clientes.cnpj, validatedData.cnpj)
+      });
+      
+      if (existingCliente) {
+        return res.status(400).json({ 
+          message: "CNPJ já cadastrado no sistema",
+          detail: `O CNPJ ${validatedData.cnpj} já está sendo usado por outro cliente`
+        });
+      }
+      
       const newCliente = await db.insert(clientes).values(validatedData).returning();
       
       res.status(201).json(newCliente[0]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating cliente:", error);
+      
+      // Verificar se é um erro de chave única (CNPJ duplicado)
+      if (error.code === '23505' && error.constraint === 'clientes_cnpj_unique') {
+        return res.status(400).json({ 
+          message: "CNPJ já cadastrado no sistema",
+          detail: error.detail
+        });
+      }
+      
       res.status(500).json({ message: "Erro ao criar cliente" });
     }
   });
@@ -205,6 +225,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { senha, ...rest } = usuariosInsertSchema.parse(req.body);
       
+      // Verificar se já existe um usuário com o mesmo email
+      const existingUsuario = await db.query.usuarios.findFirst({
+        where: eq(usuarios.email, rest.email)
+      });
+      
+      if (existingUsuario) {
+        return res.status(400).json({ 
+          message: "Email já cadastrado no sistema",
+          detail: `O email ${rest.email} já está sendo usado por outro usuário`
+        });
+      }
+      
       // Hash da senha
       const senhaCriptografada = await hashPassword(senha);
       
@@ -217,8 +249,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { senha: _, ...usuarioSemSenha } = newUsuario[0];
       
       res.status(201).json(usuarioSemSenha);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating usuario:", error);
+      
+      // Verificar se é um erro de chave única (email duplicado)
+      if (error.code === '23505' && error.constraint === 'usuarios_email_unique') {
+        return res.status(400).json({ 
+          message: "Email já cadastrado no sistema",
+          detail: error.detail
+        });
+      }
+      
       res.status(500).json({ message: "Erro ao criar usuário" });
     }
   });
