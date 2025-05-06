@@ -344,8 +344,11 @@ export default function DesocaPage() {
                 id="peso-corte"
                 type="number"
                 placeholder="Digite o peso em kg"
-                value={novoCorte.peso || ""}
-                onChange={(e) => setNovoCorte({...novoCorte, peso: parseFloat(e.target.value) || 0})}
+                value={novoCorte.peso === 0 ? "" : novoCorte.peso}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  setNovoCorte({...novoCorte, peso: value});
+                }}
                 step="0.01"
               />
             </div>
@@ -409,8 +412,11 @@ export default function DesocaPage() {
                 id="peso-embutido"
                 type="number"
                 placeholder="Digite o peso em kg"
-                value={novoEmbutido.peso || ""}
-                onChange={(e) => setNovoEmbutido({...novoEmbutido, peso: parseFloat(e.target.value) || 0})}
+                value={novoEmbutido.peso === 0 ? "" : novoEmbutido.peso}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  setNovoEmbutido({...novoEmbutido, peso: value});
+                }}
                 step="0.01"
               />
             </div>

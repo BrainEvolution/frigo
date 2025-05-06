@@ -473,11 +473,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Criamos um embutido como um corte especial e depois o movemos diretamente para o estoque final
+      const pesoFloat = typeof peso === 'string' ? parseFloat(peso) : peso;
+      
       const newCorte = await storage.insertCorte({
         desocaId,
         nome: `Embutido: ${nome}`,
         tipo: `embutido_${tipo}`, // prefixo para identificar como embutido
-        peso: parseFloat(peso),
+        peso: pesoFloat,
       });
       
       // Criar entrada no estoque final
