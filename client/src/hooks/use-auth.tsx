@@ -79,11 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["/api/session"] });
       queryClient.invalidateQueries({ queryKey: ["/api/usuarios/me"] });
       
+      // Força busca imediata dos dados do usuário
+      queryClient.refetchQueries({ queryKey: ["/api/session"] });
+      queryClient.refetchQueries({ queryKey: ["/api/usuarios/me"] });
+      
+      // Armazena o tipo de usuário explicitamente
+      const userType = data.usuario.tipo;
+      console.log("Login bem-sucedido. Tipo de usuário:", userType);
+      
       // Redireciona baseado no tipo de usuário
-      if (data.usuario.tipo === "master") {
+      if (userType === "master") {
+        console.log("Redirecionando para /admin");
         setLocation("/admin");
       } else {
-        setLocation("/");
+        console.log("Redirecionando para /estoque-vivo");
+        // Redirecione explicitamente para a página inicial do sistema
+        setLocation("/estoque-vivo");
       }
       
       toast({
