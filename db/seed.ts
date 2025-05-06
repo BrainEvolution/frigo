@@ -73,34 +73,9 @@ async function seed() {
     const insertedAnimaisVivos = await db.insert(schema.animaisVivos).values(animaisVivosData).returning();
     console.log(`Inserted ${insertedAnimaisVivos.length} live animals`);
 
-    // Animais Abatidos (Slaughtered animals)
-    console.log("Seeding animais abatidos...");
-    const animaisAbatidosData = [
+    // First, insert additional animals that will be marked as slaughtered
+    const additionalAnimalsData = [
       {
-        animalVivoId: 5, // Using higher IDs to avoid conflicts with existing animals
-        pesoVivo: 460,
-        pesoAbatido: 345,
-        rendimento: calcularRendimento(460, 345),
-        dataAbate: new Date("2023-06-12"),
-        observacoes: "Abate padrão"
-      },
-      {
-        animalVivoId: 6,
-        pesoVivo: 425,
-        pesoAbatido: 318,
-        rendimento: calcularRendimento(425, 318),
-        dataAbate: new Date("2023-06-12"),
-        observacoes: "Abate padrão"
-      }
-    ];
-
-    const insertedAnimaisAbatidos = await db.insert(schema.animaisAbatidos).values(animaisAbatidosData).returning();
-    console.log(`Inserted ${insertedAnimaisAbatidos.length} slaughtered animals`);
-
-    // Insert animals without auto-generating conflicts (these won't be part of the live stock)
-    await db.insert(schema.animaisVivos).values([
-      {
-        id: 5,
         gta: "GTA-85467930",
         brinco: "BR-2293",
         fornecedor: "Fazenda Alto Verde",
@@ -113,7 +88,6 @@ async function seed() {
         disponivel: false
       },
       {
-        id: 6,
         gta: "GTA-85467930",
         brinco: "BR-2294",
         fornecedor: "Fazenda Alto Verde",
@@ -125,7 +99,34 @@ async function seed() {
         dataCadastro: new Date("2023-06-10"),
         disponivel: false
       }
-    ]);
+    ];
+    
+    const insertedAdditionalAnimals = await db.insert(schema.animaisVivos).values(additionalAnimalsData).returning();
+    console.log(`Inserted ${insertedAdditionalAnimals.length} additional animals for slaughter`);
+    
+    // Now insert the slaughtered animals with correct IDs
+    console.log("Seeding animais abatidos...");
+    const animaisAbatidosData = [
+      {
+        animalVivoId: insertedAdditionalAnimals[0].id,
+        pesoVivo: insertedAdditionalAnimals[0].peso,
+        pesoAbatido: 345,
+        rendimento: calcularRendimento(insertedAdditionalAnimals[0].peso, 345),
+        dataAbate: new Date("2023-06-12"),
+        observacoes: "Abate padrão"
+      },
+      {
+        animalVivoId: insertedAdditionalAnimals[1].id,
+        pesoVivo: insertedAdditionalAnimals[1].peso,
+        pesoAbatido: 318,
+        rendimento: calcularRendimento(insertedAdditionalAnimals[1].peso, 318),
+        dataAbate: new Date("2023-06-12"),
+        observacoes: "Abate padrão"
+      }
+    ];
+
+    const insertedAnimaisAbatidos = await db.insert(schema.animaisAbatidos).values(animaisAbatidosData).returning();
+    console.log(`Inserted ${insertedAnimaisAbatidos.length} slaughtered animals`);
 
     // Estoque Frio (Cold storage)
     console.log("Seeding estoque frio...");
@@ -149,42 +150,44 @@ async function seed() {
     const insertedEstoqueFrio = await db.insert(schema.estoqueFrio).values(estoqueFrioData).returning();
     console.log(`Inserted ${insertedEstoqueFrio.length} cold storage items`);
 
-    // Desoça (Boning/Cutting process)
-    console.log("Seeding desoça...");
-    const desocaData = [
+    // Create additional cold storage items for boning process
+    console.log("Seeding additional cold storage items...");
+    const additionalEstoqueFrioData = [
       {
-        estoqueFrioId: 10, // Using higher IDs to avoid conflicts
-        responsavel: "Carlos Silva",
-        dataInicio: new Date("2023-06-09"),
-        finalizado: false
-      },
-      {
-        estoqueFrioId: 11,
-        responsavel: "Carlos Silva",
-        dataInicio: new Date("2023-06-09"),
-        finalizado: false
-      }
-    ];
-
-    // Insert cold storage items without auto-generating conflicts
-    await db.insert(schema.estoqueFrio).values([
-      {
-        id: 10,
-        animalAbatidoId: 1,
+        animalAbatidoId: insertedAnimaisAbatidos[0].id,
         pesoEmbalado: 315,
         temperatura: 2,
         dataEntrada: new Date("2023-06-09"),
         disponivel: false
       },
       {
-        id: 11,
-        animalAbatidoId: 2,
+        animalAbatidoId: insertedAnimaisAbatidos[1].id,
         pesoEmbalado: 298,
         temperatura: 2,
         dataEntrada: new Date("2023-06-09"),
         disponivel: false
       }
-    ]);
+    ];
+    
+    const additionalEstoqueFrio = await db.insert(schema.estoqueFrio).values(additionalEstoqueFrioData).returning();
+    console.log(`Inserted ${additionalEstoqueFrio.length} additional cold storage items`);
+    
+    // Desoça (Boning/Cutting process)
+    console.log("Seeding desoça...");
+    const desocaData = [
+      {
+        estoqueFrioId: additionalEstoqueFrio[0].id,
+        responsavel: "Carlos Silva",
+        dataInicio: new Date("2023-06-09"),
+        finalizado: false
+      },
+      {
+        estoqueFrioId: additionalEstoqueFrio[1].id,
+        responsavel: "Carlos Silva",
+        dataInicio: new Date("2023-06-09"),
+        finalizado: false
+      }
+    ];
 
     const insertedDesoca = await db.insert(schema.desoca).values(desocaData).returning();
     console.log(`Inserted ${insertedDesoca.length} boning processes`);
@@ -239,7 +242,7 @@ async function seed() {
         corteId: insertedCortes[0].id,
         codigo: "PCH-001",
         quantidade: 45,
-        preco: 79.90,
+        preco: "79.90",
         validade: new Date("2023-07-20"),
         temperatura: -5,
         categoria: "Premium",
@@ -249,7 +252,7 @@ async function seed() {
         corteId: insertedCortes[1].id,
         codigo: "CTF-002",
         quantidade: 68,
-        preco: 49.90,
+        preco: "49.90",
         validade: new Date("2023-07-18"),
         temperatura: -5,
         categoria: "Extra",
