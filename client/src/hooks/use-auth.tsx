@@ -72,8 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/session"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/usuarios/me"] });
+      
       toast({
         title: "Login realizado com sucesso",
         description: "Você está conectado ao sistema.",

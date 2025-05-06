@@ -41,6 +41,11 @@ export default function AuthPage() {
   
   // Redirect se já estiver logado
   if (user) {
+    // Se for um usuário master, redireciona para o painel administrativo
+    if (user.tipo === "master") {
+      return <Redirect to="/admin" />;
+    }
+    // Senão, redireciona para a página inicial
     return <Redirect to="/" />;
   }
   
