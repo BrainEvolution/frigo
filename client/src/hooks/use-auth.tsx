@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type User = {
   id: number;
@@ -32,6 +33,8 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  
   const {
     data: sessionData,
     error,
@@ -76,6 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["/api/session"] });
       queryClient.invalidateQueries({ queryKey: ["/api/usuarios/me"] });
       
+      // Redireciona baseado no tipo de usuário
+      if (data.usuario.tipo === "master") {
+        setLocation("/admin");
+      } else {
+        setLocation("/");
+      }
+      
       toast({
         title: "Login realizado com sucesso",
         description: "Você está conectado ao sistema.",
@@ -101,6 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       queryClient.invalidateQueries();
       queryClient.setQueryData(["/api/session"], { autenticado: false });
+      
+      // Redirecionar para a página de login
+      setLocation("/auth");
+      
       toast({
         title: "Logout realizado com sucesso",
         description: "Você saiu do sistema.",

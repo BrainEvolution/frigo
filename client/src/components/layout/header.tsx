@@ -27,7 +27,7 @@ export default function Header({
 
   const handleLogout = () => {
     logoutMutation.mutate();
-    setLocation("/auth");
+    // O redirecionamento já está sendo feito no hook de autenticação
   };
 
   return (
